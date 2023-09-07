@@ -1,14 +1,50 @@
 import scrapy
 import json
 
+weekdays = {
+    "Lunes": 1,
+    "Martes": 2,
+    "Miércoles": 3,
+    "Jueves": 4,
+    "Viernes": 5,
+    "Sábado": 6,
+    "Domingo": 7
+}
+blocks = {
+    "01-02": 1,
+    "03-04": 2,
+    "05-06": 3,
+    "07-08": 4,
+    "09-10": 5,
+    "11-12": 6,
+    "13-14": 7,
+    "15-16": 8,
+    "17-18": 9
+}
+
+def join(x):
+    text = x[0]
+    for i in x[1:]:
+        text += " " + i
+    return text
+def mapSchedule(schedule):
+    newSchedule = []
+    for block in schedule:
+        parts = block.split(" ")
+        newSchedule.append({"block": blocks[parts[1]], "weekday": weekdays[parts[0]], "classroom": join(parts[2:])[1:-1].strip()})
+    return newSchedule
 
 class RegistroSpider(scrapy.Spider):
     name = "registro"
     allowed_domains = ["registro.usach.cl"]
     start_urls = ["https://registro.usach.cl/index.php?ct=horario&mt=muestra_horario"]
     period = "2023-02"
-    file = open("profesoresId.json", "r", encoding="utf-8")
-    teachersIds = json.load(file)
+    try:
+        oldIds = open("registro/spiders/profesoresId.json", "r", encoding="utf-8")
+        teachersIds = json.load(oldIds)
+        oldIds.close()
+    except:
+        teacherIds = {}
 
     #data = []
 
@@ -55,73 +91,87 @@ class RegistroSpider(scrapy.Spider):
             for section in levelTable.xpath("./tr[3]/td[1]/table[1]/tr[2]/td[1]/font[1]/table[1]/*")[1:]:
                 if len(section.xpath("./*")) == 9:
                     if gettingTeachers:
-                        yield {"careerCode": careerCode,
-                               "courseLevel": courseLevel,
-                               "duration": dur,
-                               "courseCode": courseCode,
+                        yield {"careerId": careerCode,
+                               "courseId": courseCode,
+                               "sectionId": courseCode + "-" + courseSection,
                                "courseType": courseType,
                                "courseSection": courseSection,
                                "courseName": courseName,
-                               "teachers": teachers}
+                               "sectionQuota": sectionQuota,
+                               "sectionSignedUp": sectionSignedUp,
+                               "teachers": teachers,
+                               "period": self.period}
+
                         
-                    dur = section.xpath("./td[1]/strong/font/text()").get()
+
                     courseCode = section.xpath("./td[2]/strong/font/text()").get()
                     courseType = section.xpath("./td[3]/strong/font/text()").get()
                     courseSection = section.xpath("./td[4]/strong/font/text()").get()
                     courseName = section.xpath("./td[5]/strong/font/text()").get()
+                    sectionQuota = section.xpath("./td[6]/strong/font/text()").get()
+                    sectionSignedUp = section.xpath("./td[7]/strong/font/text()").get()
                     teacher = section.xpath("./td[8]/strong/font/text()").get()
                     schedule = section.xpath("./td[9]/strong/font/text()").getall()
                     if teacher != None and len(teacher.split(" ")) > 1 and not teacher.isspace():
-                        teachers = [{"teacher": self.teachersIds[teacher],
-                                        "schedule": schedule}]
+                        teachers = [{"teacher": self.teachersIds[teacher.strip()],
+                                        "schedule": mapSchedule(schedule)}]
                     else:
                         teachers = [{"teacher": None,
-                                        "schedule": schedule}]
+                                        "schedule": mapSchedule(schedule)}]
                         
                     gettingTeachers = False
-                    yield {"careerCode": careerCode,
-                           "courseLevel": courseLevel,
-                           "duration": dur,
-                           "courseCode": courseCode,
+                    yield {"careerId": careerCode,
+                           "courseId": courseCode,
+                           "sectionId": courseCode + "-" + courseSection,
                            "courseType": courseType,
                            "courseSection": courseSection,
                            "courseName": courseName,
-                           "teachers": teachers}
+                           "sectionQuota": sectionQuota,
+                           "sectionSignedUp": sectionSignedUp,
+                           "teachers": teachers,
+                           "period": self.period}
+
 
                 elif len(section.xpath("./*")) == 7:
                     if gettingTeachers:
-                        yield {"careerCode": careerCode,
-                               "courseLevel": courseLevel,
-                               "duration": dur,
-                               "courseCode": courseCode,
+                        yield {"careerId": careerCode,
+                               "courseId": courseCode,
+                               "sectionId": courseCode + "-" + courseSection,
                                "courseType": courseType,
                                "courseSection": courseSection,
                                "courseName": courseName,
-                               "teachers": teachers}
+                               "sectionQuota": sectionQuota,
+                               "sectionSignedUp": sectionSignedUp,
+                               "teachers": teachers,
+                               "period": self.period}
 
-                    dur = section.xpath("./td[1]/strong/font/text()").get()
+
                     courseCode = section.xpath("./td[2]/strong/font/text()").get()
                     courseType = section.xpath("./td[3]/strong/font/text()").get()
                     courseSection = section.xpath("./td[4]/strong/font/text()").get()
                     courseName = section.xpath("./td[5]/strong/font/text()").get()
+                    sectionQuota = section.xpath("./td[6]/strong/font/text()").get()
+                    sectionSignedUp = section.xpath("./td[7]/strong/font/text()").get()
                     teachers = []
                     gettingTeachers = True
 
                 elif len(section.xpath("./*")) == 2:
                     teacher = section.xpath("./td[1]/strong/font/text()").get()
-                    if teacher != None and len(teacher.split(" ")) > 1 and not teacher.isspace():
-                        teachers.append({"teacher": self.teachersIds[teacher],
-                                        "schedule": section.xpath("./td[2]/strong/font/text()").getall()})
+                    if teacher != None and len(teacher.split(" ")) >= 1 and not teacher.isspace():
+                        teachers.append({"teacher": self.teachersIds[teacher.strip()],
+                                        "schedule": mapSchedule(section.xpath("./td[2]/strong/font/text()").getall())})
                     else:
                         teachers.append({"teacher": None,
-                                        "schedule": section.xpath("./td[2]/strong/font/text()").getall()})
+                                        "schedule": mapSchedule(section.xpath("./td[2]/strong/font/text()").getall())})
 
             if gettingTeachers:
-                yield {"careerCode": careerCode,
-                       "courseLevel": courseLevel,
-                       "duration": dur,
-                       "courseCode": courseCode,
+                yield {"careerId": careerCode,
+                       "courseId": courseCode,
+                       "sectionId": courseCode + "-" + courseSection,
                        "courseType": courseType,
                        "courseSection": courseSection,
                        "courseName": courseName,
-                       "teachers": teachers}
+                       "sectionQuota": sectionQuota,
+                       "sectionSignedUp": sectionSignedUp,
+                       "teachers": teachers,
+                       "period": self.period}

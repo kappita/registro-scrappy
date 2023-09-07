@@ -32,12 +32,12 @@ class ProfesoresSpider(scrapy.Spider):
                 if len(section.xpath("./*")) == 9:
                     teacher = section.xpath("./td[8]/strong/font/text()").get()
                     if teacher != None and not teacher.isspace() and len(teacher.split(" ")) > 1:
-                        yield {"teacher": section.xpath("./td[8]/strong/font/text()").get()}
+                        yield {"teacher": section.xpath("./td[8]/strong/font/text()").get().strip()}
 
                 elif len(section.xpath("./*")) == 2:
                     teacher = section.xpath("./td[1]/strong/font/text()").get()
                     if teacher != None and not teacher.isspace() and len(teacher.split(" ")) > 1:
-                        yield {"teacher": section.xpath("./td[1]/strong/font/text()").get()}
+                        yield {"teacher": section.xpath("./td[1]/strong/font/text()").get().strip()}
                     
 
 

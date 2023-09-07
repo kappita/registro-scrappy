@@ -36,8 +36,15 @@ class RamosSpider(scrapy.Spider):
             dur = None
             courseId = None
             courseName = None
-            level = tableData.xpath("./text()[3]").get()
             careerCode = tableData.xpath("./text()[2]").get()
+            print(careerCode)
+            level = tableData.xpath("./text()[3]").get()
+        
+            if careerCode != None:
+                careerCode = careerCode.strip()
+
+            if level != None:
+                level = level.strip()
             for section in levelTable.xpath("./tr[3]/td[1]/table[1]/tr[2]/td[1]/font[1]/table[1]/*")[1:]:
                 if len(section.xpath("./*")) in [7, 9]:
                     if section.xpath("./td[2]/strong/font/text()").get() != courseId:
